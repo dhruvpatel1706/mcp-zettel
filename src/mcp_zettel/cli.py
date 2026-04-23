@@ -129,11 +129,37 @@ def backlinks_cmd(
 
 
 @app.command("serve")
-def serve_cmd() -> None:
-    """Start the MCP server on stdio (same as `mcp-zettel-server`)."""
+def serve_cmd(
+    transport: str = typer.Option(
+        "stdio",
+        "--transport",
+        "-T",
+        help="stdio (default — for Claude Desktop etc.) or streamable-http (remote/multi-device).",
+    ),
+    host: str = typer.Option(
+        "127.0.0.1",
+        "--host",
+        help="HTTP only. Stay on localhost unless you know what you're doing (no built-in auth).",
+    ),
+    port: int = typer.Option(8000, "--port", help="HTTP only."),
+) -> None:
+    """Start the MCP server.
+
+    Default is stdio (the transport every desktop MCP client uses). Pass
+    `-T streamable-http` to expose over HTTP for remote access or multi-device
+    setups. HTTP mode has no built-in auth — put a proxy with auth in front
+    of it if it's not bound to localhost.
+    """
+    import os
+
+    # CLI flags win over env; set them for the server to read back.
+    if transport != "stdio":
+        os.environ.setdefault("MCP_ZETTEL_HOST", host)
+        os.environ.setdefault("MCP_ZETTEL_PORT", str(port))
+
     from mcp_zettel.server import main as server_main
 
-    server_main()
+    server_main(transport)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 [project]
 name = "mcp-zettel"
-version = "0.4.0"
+version = "0.5.0"
 description = "MCP server exposing a Zettelkasten-style personal knowledge base (atomic notes, bidirectional links, tags, keyword + semantic search) to any MCP client."
 readme = "README.md"
 requires-python = ">=3.10"

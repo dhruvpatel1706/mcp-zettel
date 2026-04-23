@@ -211,10 +211,44 @@ def build_server(
     return mcp
 
 
-def main() -> None:
-    """Entry point for `mcp-zettel-server`. Runs over stdio (the standard MCP transport)."""
+_VALID_TRANSPORTS = {"stdio", "streamable-http", "sse"}
+
+
+def main(transport: str | None = None) -> None:
+    """Entry point for `mcp-zettel-server`.
+
+    Transport selection precedence: explicit arg > MCP_ZETTEL_TRANSPORT env var
+    > "stdio" (the default MCP transport, for Claude Desktop / Code / Cursor).
+
+    HTTP mode is for multi-device setups or remote access: set
+    MCP_ZETTEL_TRANSPORT=streamable-http (plus MCP_ZETTEL_HOST / MCP_ZETTEL_PORT
+    if you want to override 127.0.0.1:8000). Don't expose the HTTP transport on
+    a public interface without putting auth in front of it — this server has
+    no built-in auth and reads/writes your notes on the filesystem.
+    """
+    chosen = (transport or os.environ.get("MCP_ZETTEL_TRANSPORT") or "stdio").lower()
+    if chosen not in _VALID_TRANSPORTS:
+        raise SystemExit(
+            f"Unknown transport {chosen!r}. Valid: {', '.join(sorted(_VALID_TRANSPORTS))}"
+        )
+
     server = build_server()
-    server.run()
+
+    if chosen == "stdio":
+        server.run()
+        return
+
+    # HTTP / SSE: FastMCP reads host/port from the settings object it was built with.
+    host = os.environ.get("MCP_ZETTEL_HOST", "127.0.0.1")
+    port_raw = os.environ.get("MCP_ZETTEL_PORT", "8000")
+    try:
+        port = int(port_raw)
+    except ValueError as exc:
+        raise SystemExit(f"MCP_ZETTEL_PORT must be an integer, got {port_raw!r}") from exc
+
+    server.settings.host = host
+    server.settings.port = port
+    server.run(transport=chosen)
 
 
 if __name__ == "__main__":
