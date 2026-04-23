@@ -8,6 +8,10 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from mcp_zettel.models import Note, SearchHit
+from mcp_zettel.prompts import daily_note as _daily_note
+from mcp_zettel.prompts import distill_conversation as _distill_conversation
+from mcp_zettel.prompts import find_linkable_notes as _find_linkable_notes
+from mcp_zettel.prompts import summarize_by_tag as _summarize_by_tag
 from mcp_zettel.search import search as _search
 from mcp_zettel.semantic import SemanticIndex
 from mcp_zettel.storage import NoteNotFoundError, Store
@@ -144,6 +148,31 @@ def build_server(
             return store.linked_ids(note_id)
         except NoteNotFoundError as exc:
             raise ValueError(f"Note {note_id!r} not found.") from exc
+
+    # ---- prompts (v0.3) -----------------------------------------------------
+    # Prompts are little instruction bundles the client UI lets users pick from
+    # a dropdown. They return a string that Claude then acts on using the tools
+    # above.
+
+    @mcp.prompt()
+    def distill_conversation(conversation: str, max_notes: int = 8) -> str:
+        """Extract atomic notes from a chat transcript."""
+        return _distill_conversation(conversation, max_notes=max_notes)
+
+    @mcp.prompt()
+    def find_linkable_notes(concept: str, limit: int = 8) -> str:
+        """Find existing notes that might want a link to/from a new concept."""
+        return _find_linkable_notes(concept, limit=limit)
+
+    @mcp.prompt()
+    def daily_note(prompt_date: str = "") -> str:
+        """Draft today's (or a chosen date's) daily journal note."""
+        return _daily_note(prompt_date or None)
+
+    @mcp.prompt()
+    def summarize_by_tag(tag: str, style: str = "bullets") -> str:
+        """Summarize every note under a given tag. Style: bullets | essay | outline."""
+        return _summarize_by_tag(tag, style=style)
 
     @mcp.resource("zettel://all")
     def all_notes_resource() -> str:

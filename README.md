@@ -163,10 +163,23 @@ Inspect the server interactively with the MCP inspector:
 npx @modelcontextprotocol/inspector mcp-zettel-server
 ```
 
+## Prompt templates (v0.3)
+
+MCP clients that support prompt menus (Claude Desktop, Cursor) get four server-side templates that encode the "right way" to do common zettelkasten moves without you having to re-type the instructions:
+
+| Prompt | What it does |
+| --- | --- |
+| `distill_conversation(conversation, max_notes?)` | Take a chat transcript, extract discrete insights worth saving as atomic notes. The model proposes titles/bodies/tags; you approve, it calls `create_note`. |
+| `find_linkable_notes(concept, limit?)` | Before writing a new note, surface existing ones that might want to link to/from it — via `search_notes_semantic`. |
+| `daily_note(prompt_date?)` | Drop a daily journal template (worked-on / learned / blockers / notes-created-today). |
+| `summarize_by_tag(tag, style?)` | Summarize everything under a tag. Style = `bullets` / `essay` / `outline`. |
+
+These are just string-returning functions registered with `@mcp.prompt()`. Keeping the wording server-side means the same "distill" prompt behaves consistently whether you invoke it from Claude Desktop, Claude Code, or Cursor.
+
 ## Roadmap
 
 - [x] **v0.2 — embedding-backed semantic search alongside keyword search**
-- [ ] v0.3 — `@mcp.prompt()` templates for common note operations ("distill this chat into atomic notes")
+- [x] **v0.3 — `@mcp.prompt()` templates for common note operations**
 - [ ] v0.4 — graph-view resource (`zettel://graph`) returning a mermaid diagram of links
 - [ ] v0.5 — remote Streamable HTTP transport for multi-device access
 

@@ -38,3 +38,15 @@ async def test_resources_registered(tmp_path):
     templates = await server.list_resource_templates()
     template_uris = {t.uriTemplate for t in templates}
     assert "zettel://{note_id}" in template_uris
+
+
+async def test_prompts_registered(tmp_path):
+    server = build_server(tmp_path)
+    prompts = await server.list_prompts()
+    names = {p.name for p in prompts}
+    assert {
+        "distill_conversation",
+        "find_linkable_notes",
+        "daily_note",
+        "summarize_by_tag",
+    }.issubset(names)
