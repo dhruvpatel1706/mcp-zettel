@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Secrets / env
+.env
+.env.local
+
+# Claude Code tooling (not shipped)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+
+# Zettel store (personal — never commit)
+.mcp-zettel/
+notes/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
