@@ -7,6 +7,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from mcp_zettel.graph import build_mermaid
 from mcp_zettel.models import Note, SearchHit
 from mcp_zettel.prompts import daily_note as _daily_note
 from mcp_zettel.prompts import distill_conversation as _distill_conversation
@@ -192,6 +193,20 @@ def build_server(
             return f"(note {note_id!r} not found)"
         tags = ", ".join(n.tags) if n.tags else "(none)"
         return f"# {n.title}\n\n_tags: {tags}_\n_updated: {n.updated_at.isoformat()}_\n\n{n.body}"
+
+    # ---- graph view (v0.4) --------------------------------------------------
+    # Returns mermaid source. Any client that renders markdown+mermaid
+    # (Claude Desktop, Obsidian, mdBook, etc) draws it inline.
+
+    @mcp.resource("zettel://graph")
+    def graph_resource() -> str:
+        """Mermaid diagram of every note and [[...]] link."""
+        return build_mermaid(store.list_all())
+
+    @mcp.resource("zettel://graph/tag/{tag}")
+    def graph_by_tag_resource(tag: str) -> str:
+        """Mermaid diagram restricted to notes with `tag`, plus their direct neighbors."""
+        return build_mermaid(store.list_all(), focus_tag=tag)
 
     return mcp
 

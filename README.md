@@ -47,9 +47,11 @@ arxiv set and moved away from it.
 | `get_backlinks(note_id)` | Every note whose body references this one. |
 | `linked_notes(note_id)` | The ids this note links to (outbound). |
 
-Plus two MCP resources:
+Plus MCP resources:
 - `zettel://all` — one-line index of every note
 - `zettel://{note_id}` — full rendered note
+- `zettel://graph` — **v0.4.** Mermaid diagram of every note + `[[wiki-link]]` in the vault, rendered inline by any markdown+mermaid client (Claude Desktop, Obsidian, mdBook…).
+- `zettel://graph/tag/{tag}` — **v0.4.** Same diagram, but restricted to notes carrying `{tag}` plus their direct neighbors — useful once the full graph gets too noisy to read.
 
 ### Two search tools, not one
 
@@ -180,7 +182,7 @@ These are just string-returning functions registered with `@mcp.prompt()`. Keepi
 
 - [x] **v0.2 — embedding-backed semantic search alongside keyword search**
 - [x] **v0.3 — `@mcp.prompt()` templates for common note operations**
-- [ ] v0.4 — graph-view resource (`zettel://graph`) returning a mermaid diagram of links
+- [x] **v0.4 — graph-view resource (`zettel://graph`) returning a mermaid diagram of links**
 - [ ] v0.5 — remote Streamable HTTP transport for multi-device access
 
 ## License
