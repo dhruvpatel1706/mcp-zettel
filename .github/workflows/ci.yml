@@ -35,7 +35,7 @@ jobs:
         run: isort --check-only --profile black src tests
 
       - name: Flake8
-        run: flake8 src tests --max-line-length=100 --ignore=E501,W503,E203
+        run: flake8 src tests --max-line-length=100 --ignore=E501,W503,E203,E704
 
       - name: Pytest
         run: pytest tests -v --cov=src/mcp_zettel --cov-report=term-missing

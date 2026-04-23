@@ -46,6 +46,7 @@ arxiv set and moved away from it.
 | `link_notes(from_id, to_id, label?)` | Append a `[[to_id]]` wiki-link to `from_id`'s body. |
 | `get_backlinks(note_id)` | Every note whose body references this one. |
 | `linked_notes(note_id)` | The ids this note links to (outbound). |
+| `suggest_links(text, exclude_ids?, limit?)` | **v0.6.** Given arbitrary text (e.g. what you're about to save as a new note), return the most-likely-to-belong-linked existing notes. Hybrid-fuses keyword + semantic rankings via RRF, so you don't have to pick which search to use. |
 
 Plus MCP resources:
 - `zettel://all` — one-line index of every note

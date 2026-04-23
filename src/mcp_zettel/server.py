@@ -8,6 +8,7 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from mcp_zettel.graph import build_mermaid
+from mcp_zettel.links import suggest_links as _suggest_links
 from mcp_zettel.models import Note, SearchHit
 from mcp_zettel.prompts import daily_note as _daily_note
 from mcp_zettel.prompts import distill_conversation as _distill_conversation
@@ -149,6 +150,31 @@ def build_server(
             return store.linked_ids(note_id)
         except NoteNotFoundError as exc:
             raise ValueError(f"Note {note_id!r} not found.") from exc
+
+    @mcp.tool()
+    def suggest_links(
+        text: str,
+        exclude_ids: list[str] | None = None,
+        limit: int = 5,
+    ) -> list[SearchHit]:
+        """Suggest existing notes that would make good [[...]] links from `text`.
+
+        Good to call right before `create_note`, or after one, to avoid
+        orphaning a new note from its neighbors. Hybrid-fuses keyword and
+        semantic rankings via RRF — keyword catches identifiers and proper
+        nouns, semantic catches paraphrases, RRF combines without tuning.
+
+        `exclude_ids` is for "don't recommend this note" (e.g. the one you
+        just created, so it doesn't suggest linking to itself).
+        """
+        notes = store.list_all()
+        return _suggest_links(
+            notes,
+            sem,
+            text,
+            exclude_ids=set(exclude_ids or ()),
+            limit=limit,
+        )
 
     # ---- prompts (v0.3) -----------------------------------------------------
     # Prompts are little instruction bundles the client UI lets users pick from
