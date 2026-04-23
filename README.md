@@ -42,6 +42,7 @@ arxiv set and moved away from it.
 | `delete_note(note_id)` | Remove a note permanently. |
 | `list_notes(tags?)` | List every note; optional tag filter is intersection. |
 | `search_notes(query, tags?, limit?)` | Keyword search — titles and tags weigh more than body. |
+| `search_notes_semantic(query, tags?, limit?)` | **v0.2.** Embedding-based search for conceptual queries. Uses fastembed on-device (no API call). |
 | `link_notes(from_id, to_id, label?)` | Append a `[[to_id]]` wiki-link to `from_id`'s body. |
 | `get_backlinks(note_id)` | Every note whose body references this one. |
 | `linked_notes(note_id)` | The ids this note links to (outbound). |
@@ -49,6 +50,12 @@ arxiv set and moved away from it.
 Plus two MCP resources:
 - `zettel://all` — one-line index of every note
 - `zettel://{note_id}` — full rendered note
+
+### Two search tools, not one
+
+Keyword search is what you want when you know the term. It's cheap, the ranking is predictable, and exact matches always beat similar-sounding ones. Semantic search wins when the query wording doesn't match the note wording — asking for "rate limiting" when the note calls it "throttling", or "why my cache is cold" when the note is about "TTL tuning". The LLM can call whichever makes sense; the tool descriptions tell it which is which.
+
+The embedding model is `BAAI/bge-small-en-v1.5` by default (384-dim, ~130 MB, CPU-only). Override with `MCP_ZETTEL_EMBEDDING_MODEL`. The index rebuilds lazily on the first semantic query after any write, so there's a short wait the first time — after that it stays in memory for the life of the server process.
 
 ## Install
 
@@ -158,7 +165,7 @@ npx @modelcontextprotocol/inspector mcp-zettel-server
 
 ## Roadmap
 
-- [ ] v0.2 — embedding-backed semantic search as a second tool (keyword + semantic, fused)
+- [x] **v0.2 — embedding-backed semantic search alongside keyword search**
 - [ ] v0.3 — `@mcp.prompt()` templates for common note operations ("distill this chat into atomic notes")
 - [ ] v0.4 — graph-view resource (`zettel://graph`) returning a mermaid diagram of links
 - [ ] v0.5 — remote Streamable HTTP transport for multi-device access

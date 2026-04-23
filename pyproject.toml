@@ -1,7 +1,7 @@
 [project]
 name = "mcp-zettel"
-version = "0.1.0"
-description = "MCP server exposing a Zettelkasten-style personal knowledge base (atomic notes, bidirectional links, tags) to any MCP client."
+version = "0.2.0"
+description = "MCP server exposing a Zettelkasten-style personal knowledge base (atomic notes, bidirectional links, tags, keyword + semantic search) to any MCP client."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -24,6 +24,7 @@ dependencies = [
     "pyyaml>=6.0",
     "typer>=0.12.0",
     "rich>=13.7.0",
+    "fastembed>=0.4.0",
 ]
 
 [project.optional-dependencies]

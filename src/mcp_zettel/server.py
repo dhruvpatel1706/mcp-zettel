@@ -9,22 +9,40 @@ from mcp.server.fastmcp import FastMCP
 
 from mcp_zettel.models import Note, SearchHit
 from mcp_zettel.search import search as _search
+from mcp_zettel.semantic import SemanticIndex
 from mcp_zettel.storage import NoteNotFoundError, Store
 
 DEFAULT_ROOT = Path(os.environ.get("MCP_ZETTEL_ROOT", Path.home() / ".mcp-zettel"))
+EMBEDDING_MODEL = os.environ.get("MCP_ZETTEL_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 
 
-def build_server(root: Path | None = None) -> FastMCP:
-    """Construct the MCP server bound to a given storage root."""
+def build_server(
+    root: Path | None = None,
+    *,
+    semantic: SemanticIndex | None = None,
+) -> FastMCP:
+    """Construct the MCP server bound to a given storage root.
+
+    `semantic` is injectable so tests can pass a stub without triggering the
+    fastembed import / model download.
+    """
     store = Store(root or DEFAULT_ROOT)
+    sem = semantic if semantic is not None else SemanticIndex(model_name=EMBEDDING_MODEL)
+
     mcp = FastMCP(
         "zettel",
         instructions=(
             "Zettelkasten personal knowledge base. Notes are atomic markdown documents "
             "identified by 6-10 char hex IDs. Use [[note_id]] wiki-links in note bodies "
-            "to cross-reference. Prefer many small focused notes over few long ones."
+            "to cross-reference. Prefer many small focused notes over few long ones. "
+            "Two search tools are available: keyword (cheap, exact-match-friendly) and "
+            "semantic (on-device embeddings, good for synonyms and paraphrases)."
         ),
     )
+
+    def _invalidate_semantic() -> None:
+        # Cheap: only marks it stale. Next semantic call rebuilds lazily.
+        sem.clear()
 
     @mcp.tool()
     def create_note(title: str, body: str, tags: list[str] | None = None) -> Note:
@@ -32,7 +50,9 @@ def build_server(root: Path | None = None) -> FastMCP:
 
         Use [[other_note_id]] in `body` to link to existing notes.
         """
-        return store.create(title=title, body=body, tags=list(tags or []))
+        note = store.create(title=title, body=body, tags=list(tags or []))
+        _invalidate_semantic()
+        return note
 
     @mcp.tool()
     def read_note(note_id: str) -> Note:
@@ -51,9 +71,11 @@ def build_server(root: Path | None = None) -> FastMCP:
     ) -> Note:
         """Update fields of an existing note. Any omitted field is left unchanged."""
         try:
-            return store.update(note_id, title=title, body=body, tags=tags)
+            note = store.update(note_id, title=title, body=body, tags=tags)
         except NoteNotFoundError as exc:
             raise ValueError(f"Note {note_id!r} not found.") from exc
+        _invalidate_semantic()
+        return note
 
     @mcp.tool()
     def delete_note(note_id: str) -> str:
@@ -62,6 +84,7 @@ def build_server(root: Path | None = None) -> FastMCP:
             store.delete(note_id)
         except NoteNotFoundError as exc:
             raise ValueError(f"Note {note_id!r} not found.") from exc
+        _invalidate_semantic()
         return f"Deleted note {note_id}."
 
     @mcp.tool()
@@ -75,17 +98,39 @@ def build_server(root: Path | None = None) -> FastMCP:
         tags: list[str] | None = None,
         limit: int = 10,
     ) -> list[SearchHit]:
-        """Search notes by keyword. Hits are ranked — titles and tags weigh more than body."""
+        """Keyword search over notes. Ranked — titles and tags weigh more than body.
+
+        Good for exact terms you know are in the notes. For conceptual queries
+        (synonyms, paraphrases) use `search_notes_semantic` instead.
+        """
         notes = store.list_all()
         return _search(notes, query, tags=list(tags or []) or None, limit=limit)
+
+    @mcp.tool()
+    def search_notes_semantic(
+        query: str,
+        tags: list[str] | None = None,
+        limit: int = 10,
+    ) -> list[SearchHit]:
+        """Semantic search over notes. Uses on-device embeddings.
+
+        Good for conceptual queries where the exact wording differs from the
+        note's wording. The first call after a note change rebuilds the
+        in-memory index (takes a second on CPU for up to ~1000 notes).
+        """
+        if not sem.ready:
+            sem.build(store.list_all())
+        return sem.search(query, tags=list(tags or []) or None, limit=limit)
 
     @mcp.tool()
     def link_notes(from_id: str, to_id: str, label: str = "") -> Note:
         """Append a [[to_id]] link at the end of `from_id`'s body. Optional `label`."""
         try:
-            return store.add_link(from_id, to_id, label=label)
+            note = store.add_link(from_id, to_id, label=label)
         except NoteNotFoundError as exc:
             raise ValueError(f"One of the notes doesn't exist: {exc}") from exc
+        _invalidate_semantic()
+        return note
 
     @mcp.tool()
     def get_backlinks(note_id: str) -> list[Note]:
